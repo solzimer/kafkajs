@@ -43,6 +43,7 @@ module.exports = class ConsumerGroup {
    * @param {import('../../types').RetryOptions} options.retry
    * @param {import('../../types').Cluster} options.cluster
    * @param {string} options.groupId
+   * @param {string | null} [options.groupInstanceId] Stable identity across restarts.
    * @param {string[]} options.topics
    * @param {Record<string, { fromBeginning?: boolean }>} options.topicConfigurations
    * @param {import('../../types').Logger} options.logger
@@ -65,6 +66,7 @@ module.exports = class ConsumerGroup {
     retry,
     cluster,
     groupId,
+    groupInstanceId = null,
     topics,
     topicConfigurations,
     logger,
@@ -86,6 +88,7 @@ module.exports = class ConsumerGroup {
     /** @type {import("../../types").Cluster} */
     this.cluster = cluster
     this.groupId = groupId
+    this.groupInstanceId = groupInstanceId
     this.topics = topics
     this.topicsSubscribed = topics
     this.topicConfigurations = topicConfigurations
@@ -137,6 +140,7 @@ module.exports = class ConsumerGroup {
         const payload = {
           groupId,
           memberId,
+          ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
           groupGenerationId: generationId,
         }
 
@@ -168,6 +172,7 @@ module.exports = class ConsumerGroup {
 
     const groupData = await this.coordinator.joinGroup({
       groupId,
+      ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
       sessionTimeout,
       rebalanceTimeout,
       memberId: this.memberId || '',
@@ -187,6 +192,10 @@ module.exports = class ConsumerGroup {
 
   async leave() {
     const { groupId, memberId } = this
+    if (this.groupInstanceId !== null) {
+      this.memberId = null
+      return
+    }
     if (memberId) {
       await this.coordinator.leaveGroup({ groupId, memberId })
       this.memberId = null
@@ -232,6 +241,7 @@ module.exports = class ConsumerGroup {
     this.partitionsPerSubscribedTopic = this.generatePartitionsPerSubscribedTopic()
     const { memberAssignment } = await this.coordinator.syncGroup({
       groupId,
+      ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
       generationId,
       memberId,
       groupAssignment: assignment,
@@ -323,6 +333,7 @@ module.exports = class ConsumerGroup {
       autoCommitThreshold: this.autoCommitThreshold,
       coordinator,
       groupId,
+      ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
       generationId,
       memberId,
     })

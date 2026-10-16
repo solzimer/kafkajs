@@ -2,6 +2,14 @@
 const RETENTION_TIME = -1
 
 const versions = {
+  6: params => ({
+    request: require('./v6/request')(params),
+    response: require('./v6/response'),
+  }),
+  7: params => ({
+    request: require('./v7/request')(params),
+    response: require('./v7/response'),
+  }),
   0: ({ groupId, topics }) => {
     const request = require('./v0/request')
     const response = require('./v0/response')

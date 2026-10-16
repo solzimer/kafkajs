@@ -28,6 +28,7 @@ const specialOffsets = [
  * @param {Object} params
  * @param {import("../../types").Cluster} params.cluster
  * @param {String} params.groupId
+ * @param {string | null} [params.groupInstanceId] Stable identity of a static group member.
  * @param {import('../../types').RetryOptions} [params.retry]
  * @param {import('../../types').Logger} params.logger
  * @param {import('../../types').PartitionAssigner[]} [params.partitionAssigners]
@@ -48,6 +49,7 @@ const specialOffsets = [
 module.exports = ({
   cluster,
   groupId,
+  groupInstanceId = null,
   retry,
   logger: rootLogger,
   partitionAssigners = [roundRobin],
@@ -65,6 +67,10 @@ module.exports = ({
 }) => {
   if (!groupId) {
     throw new KafkaJSNonRetriableError('Consumer groupId must be a non-empty string.')
+  }
+
+  if (groupInstanceId !== null && (typeof groupInstanceId !== 'string' || !groupInstanceId)) {
+    throw new KafkaJSNonRetriableError('Consumer groupInstanceId must be a non-empty string.')
   }
 
   const logger = rootLogger.namespace('Consumer')
@@ -210,6 +216,7 @@ module.exports = ({
         retry,
         cluster,
         groupId,
+        groupInstanceId,
         assigners,
         sessionTimeout,
         rebalanceTimeout,

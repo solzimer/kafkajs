@@ -4,6 +4,17 @@ const { KafkaJSNonRetriableError } = require('../../errors')
 const { createCluster, newLogger } = require('testHelpers')
 
 describe('Consumer', () => {
+  it.each(['', 0, false, {}, []])('rejects invalid groupInstanceId %p', groupInstanceId => {
+    expect(() =>
+      createConsumer({
+        cluster: createCluster(),
+        logger: newLogger(),
+        groupId: 'test-group',
+        groupInstanceId,
+      })
+    ).toThrow(KafkaJSNonRetriableError)
+  })
+
   it('throws when heartbeatInterval is lower or equal to sessionTimeout', () => {
     const errorMessage =
       'Consumer heartbeatInterval (10000) must be lower than sessionTimeout (10000). It is recommended to set heartbeatInterval to approximately a third of the sessionTimeout.'

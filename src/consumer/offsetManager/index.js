@@ -23,6 +23,7 @@ module.exports = class OffsetManager {
    * @param {{[topic: string]: { fromBeginning: boolean }}} options.topicConfigurations
    * @param {import("../../instrumentation/emitter")} options.instrumentationEmitter
    * @param {string} options.groupId
+   * @param {string | null} [options.groupInstanceId] Stable identity across restarts.
    * @param {number} options.generationId
    * @param {string} options.memberId
    */
@@ -36,6 +37,7 @@ module.exports = class OffsetManager {
     topicConfigurations,
     instrumentationEmitter,
     groupId,
+    groupInstanceId = null,
     generationId,
     memberId,
   }) {
@@ -52,6 +54,7 @@ module.exports = class OffsetManager {
     this.topicConfigurations = topicConfigurations
     this.instrumentationEmitter = instrumentationEmitter
     this.groupId = groupId
+    this.groupInstanceId = groupInstanceId
     this.generationId = generationId
     this.memberId = memberId
 
@@ -144,6 +147,7 @@ module.exports = class OffsetManager {
 
     await coordinator.offsetCommit({
       groupId,
+      ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
       memberId,
       groupGenerationId: generationId,
       topics: [
@@ -184,6 +188,7 @@ module.exports = class OffsetManager {
 
     await coordinator.offsetCommit({
       groupId,
+      ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
       memberId,
       groupGenerationId: generationId,
       topics: [
@@ -254,6 +259,7 @@ module.exports = class OffsetManager {
 
     const payload = {
       groupId,
+      ...(this.groupInstanceId != null && { groupInstanceId: this.groupInstanceId }),
       memberId,
       groupGenerationId: generationId,
       topics,

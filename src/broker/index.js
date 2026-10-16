@@ -4,6 +4,7 @@ const { requests, lookup } = require('../protocol/requests')
 const { KafkaJSNonRetriableError } = require('../errors')
 const apiKeys = require('../protocol/requests/apiKeys')
 const shuffle = require('../utils/shuffle')
+const assertStaticMembershipSupport = require('./assertStaticMembershipSupport')
 
 const PRIVATE = {
   SEND_REQUEST: Symbol('private:Broker:sendRequest'),
@@ -336,11 +337,15 @@ module.exports = class Broker {
    * @param {string} request.groupId The group id
    * @param {number} request.groupGenerationId The generation of the group
    * @param {string} request.memberId The member id assigned by the group coordinator
+   * @param {string | null} [request.groupInstanceId] Stable identity across restarts.
    * @returns {Promise}
    */
-  async heartbeat({ groupId, groupGenerationId, memberId }) {
+  async heartbeat({ groupId, groupGenerationId, memberId, groupInstanceId = null }) {
+    assertStaticMembershipSupport(this.versions, groupInstanceId)
     const heartbeat = this.lookupRequest(apiKeys.Heartbeat, requests.Heartbeat)
-    return await this[PRIVATE.SEND_REQUEST](heartbeat({ groupId, groupGenerationId, memberId }))
+    return await this[PRIVATE.SEND_REQUEST](
+      heartbeat({ groupId, groupGenerationId, memberId, groupInstanceId })
+    )
   }
 
   /**
@@ -365,6 +370,7 @@ module.exports = class Broker {
    * @param {number} request.rebalanceTimeout The maximum time that the coordinator will wait for each member
    *                                  to rejoin when rebalancing the group
    * @param {string} [request.memberId=""] The assigned consumer id or an empty string for a new consumer
+   * @param {string | null} [request.groupInstanceId] Stable identity across restarts.
    * @param {string} [request.protocolType="consumer"] Unique name for class of protocols implemented by group
    * @param {Array} request.groupProtocols List of protocols that the member supports (assignment strategy)
    *                                [{ name: 'AssignerName', metadata: '{"version": 1, "topics": []}' }]
@@ -375,9 +381,11 @@ module.exports = class Broker {
     sessionTimeout,
     rebalanceTimeout,
     memberId = '',
+    groupInstanceId = null,
     protocolType = 'consumer',
     groupProtocols,
   }) {
+    assertStaticMembershipSupport(this.versions, groupInstanceId)
     const joinGroup = this.lookupRequest(apiKeys.JoinGroup, requests.JoinGroup)
     const makeRequest = (assignedMemberId = memberId) =>
       this[PRIVATE.SEND_REQUEST](
@@ -386,6 +394,7 @@ module.exports = class Broker {
           sessionTimeout,
           rebalanceTimeout,
           memberId: assignedMemberId,
+          groupInstanceId,
           protocolType,
           groupProtocols,
         })
@@ -421,15 +430,18 @@ module.exports = class Broker {
    * @param {number} request.generationId
    * @param {string} request.memberId
    * @param {object} request.groupAssignment
+   * @param {string | null} [request.groupInstanceId] Stable identity across restarts.
    * @returns {Promise}
    */
-  async syncGroup({ groupId, generationId, memberId, groupAssignment }) {
+  async syncGroup({ groupId, generationId, memberId, groupAssignment, groupInstanceId = null }) {
+    assertStaticMembershipSupport(this.versions, groupInstanceId)
     const syncGroup = this.lookupRequest(apiKeys.SyncGroup, requests.SyncGroup)
     return await this[PRIVATE.SEND_REQUEST](
       syncGroup({
         groupId,
         generationId,
         memberId,
+        groupInstanceId,
         groupAssignment,
       })
     )
@@ -478,6 +490,7 @@ module.exports = class Broker {
    * @param {string} request.memberId
    * @param {number} [request.retentionTime=-1] -1 signals to the broker that its default configuration
    *                                    should be used.
+   * @param {string | null} [request.groupInstanceId] Stable identity across restarts.
    * @param {object} request.topics Topics to commit offsets, e.g:
    *                  [
    *                    {
@@ -489,13 +502,22 @@ module.exports = class Broker {
    *                  ]
    * @returns {Promise}
    */
-  async offsetCommit({ groupId, groupGenerationId, memberId, retentionTime, topics }) {
+  async offsetCommit({
+    groupId,
+    groupGenerationId,
+    memberId,
+    groupInstanceId = null,
+    retentionTime,
+    topics,
+  }) {
+    assertStaticMembershipSupport(this.versions, groupInstanceId)
     const offsetCommit = this.lookupRequest(apiKeys.OffsetCommit, requests.OffsetCommit)
     return await this[PRIVATE.SEND_REQUEST](
       offsetCommit({
         groupId,
         groupGenerationId,
         memberId,
+        groupInstanceId,
         retentionTime,
         topics,
       })

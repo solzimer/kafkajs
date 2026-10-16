@@ -12,6 +12,28 @@ describe('Consumer > assigners > RoundRobinAssigner', () => {
   })
 
   describe('#assign', () => {
+    test('keeps static assignments stable when member ids change', async () => {
+      metadata['topic-A'] = [{ partitionId: 0 }, { partitionId: 1 }]
+      const before = await assigner.assign({
+        members: [
+          { memberId: 'member-a', groupInstanceId: 'worker-0' },
+          { memberId: 'member-b', groupInstanceId: 'worker-1' },
+        ],
+        topics: ['topic-A'],
+      })
+      const after = await assigner.assign({
+        members: [
+          { memberId: 'member-z', groupInstanceId: 'worker-0' },
+          { memberId: 'member-b', groupInstanceId: 'worker-1' },
+        ],
+        topics: ['topic-A'],
+      })
+      expect(after.map(member => member.memberAssignment)).toEqual(
+        before.map(member => member.memberAssignment)
+      )
+      expect(after.map(member => member.memberId)).toEqual(['member-z', 'member-b'])
+    })
+
     test('assign all topic-partitions evenly', async () => {
       metadata['topic-A'] = Array(14)
         .fill()

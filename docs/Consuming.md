@@ -11,6 +11,29 @@ Creating the consumer:
 const consumer = kafka.consumer({ groupId: 'my-group' })
 ```
 
+To use static membership (Kafka 2.3 or later), configure a stable, non-empty
+`groupInstanceId` that is unique within the consumer group:
+
+```javascript
+const consumer = kafka.consumer({
+  groupId: 'my-group',
+  groupInstanceId: 'worker-0',
+  sessionTimeout: 60000,
+})
+```
+
+Reuse the same identity after a restart. Static members do not send `LeaveGroup`
+when stopped or disconnected, allowing a restart within `sessionTimeout` to retain
+membership. Permanent failures or scale-down therefore leave partitions unavailable
+until the session expires, unless the member is explicitly removed with Kafka's
+administration tools. Longer session timeouts must be allowed by the broker and
+delay failure recovery. Static membership reduces restart-related rebalances; it
+does not prevent rebalances caused by membership or subscription changes.
+
+Unsupported brokers fail with a non-retriable error rather than silently using
+dynamic membership. A fenced instance (`FENCED_INSTANCE_ID`) stops without automatic
+restart. Omit `groupInstanceId` or set it to `null` for dynamic membership.
+
 Subscribing to some topics:
 
 ```javascript

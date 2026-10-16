@@ -151,6 +151,7 @@ export interface IHeaders {
 
 export interface ConsumerConfig {
   groupId: string
+  groupInstanceId?: string | null
   partitionAssigners?: PartitionAssigner[]
   metadataMaxAge?: number
   sessionTimeout?: number
@@ -212,7 +213,11 @@ export type Cluster = {
 
 export type Assignment = { [topic: string]: number[] }
 
-export type GroupMember = { memberId: string; memberMetadata: Buffer }
+export type GroupMember = {
+  memberId: string
+  groupInstanceId?: string | null
+  memberMetadata: Buffer
+}
 
 export type GroupMemberAssignment = { memberId: string; memberAssignment: Buffer }
 
@@ -661,6 +666,7 @@ export type Broker = {
     groupId: string
     groupGenerationId: number
     memberId: string
+    groupInstanceId?: string | null
     retentionTime?: number
     topics: TopicOffsets[]
   }): Promise<any>

@@ -38,7 +38,16 @@ module.exports = ({ cluster }) => ({
    */
   async assign({ members, topics }) {
     const membersCount = members.length
-    const sortedMembers = members.map(({ memberId }) => memberId).sort()
+    const sortedMembers = [...members]
+      .sort((a, b) => {
+        const aId = a.groupInstanceId == null ? a.memberId : a.groupInstanceId
+        const bId = b.groupInstanceId == null ? b.memberId : b.groupInstanceId
+        if (aId !== bId) {
+          return aId < bId ? -1 : 1
+        }
+        return a.memberId < b.memberId ? -1 : a.memberId > b.memberId ? 1 : 0
+      })
+      .map(({ memberId }) => memberId)
     const assignment = {}
 
     const topicsPartitions = topics.flatMap(topic => {

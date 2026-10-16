@@ -51,6 +51,8 @@ kafka.logger().error('Instantiated KafkaJS')
 
 // CONSUMER
 const consumer = kafka.consumer({ groupId: 'test-group' })
+kafka.consumer({ groupId: 'static-group', groupInstanceId: 'worker-0' })
+kafka.consumer({ groupId: 'dynamic-group', groupInstanceId: null })
 consumer.logger().info('Instantiated logger', { groupId: 'test-group' })
 
 let removeListener = consumer.on(consumer.events.HEARTBEAT, e =>
